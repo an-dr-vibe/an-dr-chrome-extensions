@@ -33,7 +33,7 @@ if (-not (Test-Path $chromeExtDir)) {
 
 # Find all extension manifests, excluding hidden/tool dirs
 Write-Host "Searching for manifest.json in: $repoDir" -ForegroundColor Gray
-$allManifests = Get-ChildItem -Path $repoDir -Recurse -Filter "manifest.json" -ErrorAction SilentlyContinue
+$allManifests = Get-ChildItem -LiteralPath $repoDir -Recurse -Filter "manifest.json" -ErrorAction SilentlyContinue
 Write-Host "Raw results ($($allManifests.Count) total):" -ForegroundColor Gray
 $allManifests | ForEach-Object { Write-Host "  - $($_.FullName)" -ForegroundColor DarkGray }
 
