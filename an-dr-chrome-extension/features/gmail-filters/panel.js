@@ -75,6 +75,11 @@ function renderLabelOptions() {
 }
 
 function showError(msg) {
+  if (msg.includes('bad client id') || msg.includes('OAuth2')) {
+    root.querySelector('#gf-setup').style.display = 'block';
+    root.querySelector('#gf-list').innerHTML = '';
+    return;
+  }
   const el = root.querySelector('#gf-error');
   el.textContent = msg;
   el.style.display = 'block';
@@ -99,6 +104,34 @@ function buildShell() {
 
     <div id="gf-error" class="gf-error" style="display:none"></div>
     <div id="gf-status" class="gf-status" style="display:none"></div>
+
+    <div id="gf-setup" class="gf-setup" style="display:none">
+      <div class="gf-setup-title">&#9888; OAuth2 client ID not configured</div>
+      <p>The extension needs a Google OAuth2 credential to access the Gmail API. One-time setup:</p>
+      <ol class="gf-setup-steps">
+        <li>
+          <a href="https://console.cloud.google.com/" target="_blank">Open Google Cloud Console</a>
+          — create or select a project
+        </li>
+        <li>
+          <a href="https://console.cloud.google.com/apis/library/gmail.googleapis.com" target="_blank">Enable the Gmail API</a>
+        </li>
+        <li>
+          <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Create an OAuth 2.0 Client ID</a>
+          — type: <strong>Chrome Extension</strong>, Item ID: your extension ID from
+          <a href="chrome://extensions" target="_blank">chrome://extensions</a>
+        </li>
+        <li>
+          Copy the generated client ID and paste it into <code>manifest.json</code> →
+          <code>"oauth2": { "client_id": "…" }</code>
+        </li>
+        <li>
+          <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank">Add your Google account as a test user</a>
+          on the OAuth consent screen
+        </li>
+        <li>Reload the extension in <a href="chrome://extensions" target="_blank">chrome://extensions</a></li>
+      </ol>
+    </div>
 
     <div id="gf-list" class="gf-list"><p class="gf-loading">Loading...</p></div>
 

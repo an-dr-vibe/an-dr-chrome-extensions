@@ -211,3 +211,50 @@
 }
 
 .gf-btn-secondary:hover { background: #f8f9fa; }
+
+.gf-setup {
+  background: #fef7e0;
+  border: 1px solid #f9ab00;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.gf-setup-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #b06000;
+  margin-bottom: 10px;
+}
+
+.gf-setup p {
+  font-size: 13px;
+  color: #3c4043;
+  margin-bottom: 10px;
+}
+
+.gf-setup-steps {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13px;
+  color: #3c4043;
+}
+
+.gf-setup-steps a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.gf-setup-steps a:hover {
+  text-decoration: underline;
+}
+
+.gf-setup-steps code {
+  background: #f1f3f4;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 12px;
+  font-family: "Roboto Mono", monospace;
+}
