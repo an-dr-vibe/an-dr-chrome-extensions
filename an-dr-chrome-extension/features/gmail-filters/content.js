@@ -178,13 +178,14 @@
       if (!Object.keys(criteria).length && criteriaRaw) criteria.query = criteriaRaw;
 
       // Parse action string
+      const bareLabelName = (actionsRaw.match(/apply the label[:\s]+"?([^",\n]+)"?/i) ||
+                             actionsRaw.match(/label[:\s]+"([^"]+)"/i))?.[1]?.trim() || '';
       const actions = {
         skipInbox: /skip the inbox|archive/i.test(actionsRaw),
         markRead:  /mark as read/i.test(actionsRaw),
         neverSpam: /never.*spam/i.test(actionsRaw),
         star:      /star it/i.test(actionsRaw),
-        label:     (actionsRaw.match(/apply the label[:\s]+"?([^",\n]+)"?/i) ||
-                    actionsRaw.match(/label[:\s]+"([^"]+)"/i))?.[1]?.trim() || '',
+        label:     enrichLabelName(bareLabelName, getLabelsFromDOM()),
       };
 
       const deleteEl = elByText(row, 'span, a, div[role="button"]', 'delete')
@@ -193,6 +194,107 @@
                     || elByText(row, 'span, a, div[role="button"]', 'Edit');
 
       return { i, criteriaRaw, actionsRaw, criteria, actions, deleteEl, editEl, row };
+    });
+  }
+
+  // ── Label helpers ─────────────────────────────────────────────────────────
+
+  function getLabelsFromDOM() {
+    const seen = new Set();
+    const labels = [];
+    // Gmail renders labels in the sidebar as links with #label/Name hrefs
+    document.querySelectorAll('a[href]').forEach(a => {
+      const m = (a.getAttribute('href') || '').match(/#label\/(.+)/);
+      if (m) {
+        const name = decodeURIComponent(m[1]).replace(/\+/g, ' ').trim();
+        if (name && !seen.has(name)) { seen.add(name); labels.push(name); }
+      }
+    });
+    // Fallback: nav items with aria-label in the sidebar
+    if (!labels.length) {
+      document.querySelectorAll('[data-tooltip], [aria-label]').forEach(el => {
+        const t = (el.getAttribute('data-tooltip') || el.getAttribute('aria-label') || '').trim();
+        if (t && !seen.has(t) && el.closest('nav, [role=navigation]')) {
+          seen.add(t); labels.push(t);
+        }
+      });
+    }
+    return labels;
+  }
+
+  // Match a bare label name (no emoji) against the full sidebar list
+  function enrichLabelName(bare, allLabels) {
+    if (!bare) return bare;
+    const lower = bare.toLowerCase();
+    return allLabels.find(l => l.toLowerCase().startsWith(lower) || l.toLowerCase() === lower) || bare;
+  }
+
+  function labelInputHTML(value) {
+    return `<div class="andr-label-wrap">
+      <input class="andr-label-input" name="label" value="${esc(value)}" placeholder="label name…" autocomplete="off">
+      <ul class="andr-label-dropdown" style="display:none"></ul>
+    </div>`;
+  }
+
+  function wireLabelInputs(root) {
+    const allLabels = getLabelsFromDOM();
+    root.querySelectorAll('.andr-label-wrap').forEach(wrap => {
+      const input    = wrap.querySelector('.andr-label-input');
+      const dropdown = wrap.querySelector('.andr-label-dropdown');
+      let activeIdx  = -1;
+
+      function showDropdown(matches) {
+        if (!matches.length) { dropdown.style.display = 'none'; return; }
+        dropdown.innerHTML = matches.map((l, i) =>
+          `<li class="andr-label-opt" data-value="${esc(l)}">${esc(l)}</li>`
+        ).join('');
+        dropdown.style.display = 'block';
+        activeIdx = -1;
+      }
+
+      function selectItem(li) {
+        input.value = li.dataset.value;
+        dropdown.style.display = 'none';
+      }
+
+      input.addEventListener('input', () => {
+        const q = input.value.toLowerCase();
+        showDropdown(q ? allLabels.filter(l => l.toLowerCase().includes(q)) : allLabels);
+      });
+
+      input.addEventListener('focus', () => {
+        showDropdown(allLabels);
+      });
+
+      input.addEventListener('keydown', e => {
+        const items = dropdown.querySelectorAll('.andr-label-opt');
+        if (!items.length) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          activeIdx = Math.min(activeIdx + 1, items.length - 1);
+          items.forEach((el, i) => el.classList.toggle('andr-label-opt-active', i === activeIdx));
+          items[activeIdx]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeIdx = Math.max(activeIdx - 1, 0);
+          items.forEach((el, i) => el.classList.toggle('andr-label-opt-active', i === activeIdx));
+          items[activeIdx]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter' && activeIdx >= 0) {
+          e.preventDefault();
+          selectItem(items[activeIdx]);
+        } else if (e.key === 'Escape') {
+          dropdown.style.display = 'none';
+        }
+      });
+
+      dropdown.addEventListener('mousedown', e => {
+        const opt = e.target.closest('.andr-label-opt');
+        if (opt) { e.preventDefault(); selectItem(opt); }
+      });
+
+      input.addEventListener('blur', () => {
+        setTimeout(() => { dropdown.style.display = 'none'; }, 150);
+      });
     });
   }
 
@@ -233,7 +335,7 @@
         <label><input type="checkbox" name="star"      ${a.star      ? 'checked' : ''}> Star it</label>
       </div>
       <div class="andr-form-grid">
-        <label>Apply label <input name="label" value="${esc(a.label || '')}"></label>
+        <label>Apply label ${labelInputHTML(a.label || '')}</label>
       </div>`;
   }
 
@@ -303,6 +405,7 @@
 
     container.insertAdjacentElement('beforebegin', panel);
     wireChipInputs(panel);
+    wireLabelInputs(panel);
     wirePanel(panel, filters);
   }
 

@@ -335,6 +335,49 @@
 }
 .andr-btn-danger:hover { background: #fce8e6; border-color: #c5221f; }
 
+/* ── Label autocomplete ────────────────────────────────────────────────── */
+
+.andr-label-wrap {
+  position: relative;
+}
+
+.andr-label-input {
+  width: 100%;
+}
+
+.andr-label-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 9999;
+}
+
+.andr-label-opt {
+  padding: 7px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #202124;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.andr-label-opt:hover,
+.andr-label-opt-active {
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+
 /* ── Email-view "Add to filter" button ─────────────────────────────────── */
 
 #andr-add-filter-btn {
