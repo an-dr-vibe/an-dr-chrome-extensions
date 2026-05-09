@@ -15,12 +15,7 @@ if (-not $isAdmin) {
     exit
 }
 
-$scriptPath = $MyInvocation.MyCommand.Path
-if (-not $scriptPath) {
-    $scriptPath = $PSCommandPath
-}
-$repoDir = Split-Path -Parent $scriptPath
-$repoDir = (Resolve-Path $repoDir).Path
+$repoDir = $PSScriptRoot
 
 $chromeExtDir = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Extensions"
 
@@ -36,13 +31,9 @@ if (-not (Test-Path $chromeExtDir)) {
     exit 1
 }
 
-# Find all extensions (search current dir and subdirs)
-$manifests = @()
-Get-ChildItem -Path $repoDir -Recurse -Filter "manifest.json" -ErrorAction SilentlyContinue | Where-Object {
-    $_.FullName -notlike "*\.git*" -and $_.FullName -notlike "*\.claude*"
-} | ForEach-Object {
-    $manifests += $_
-}
+# Find all extension manifests, excluding hidden/tool dirs
+$manifests = Get-ChildItem -Path $repoDir -Recurse -Filter "manifest.json" -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '\\\.git\\|\\\.claude\\' }
 
 if ($manifests.Count -eq 0) {
     Write-Host "No extensions found!" -ForegroundColor Red
