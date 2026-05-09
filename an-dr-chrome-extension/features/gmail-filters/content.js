@@ -97,9 +97,12 @@
 
       // Parse criteria string into fields
       const criteria = {};
-      const fromM = criteriaRaw.match(/from:\(?([^)\s]+)\)?/);   if (fromM)    criteria.from    = fromM[1];
-      const toM   = criteriaRaw.match(/to:\(?([^)\s]+)\)?/);     if (toM)      criteria.to      = toM[1];
-      const subjM = criteriaRaw.match(/subject:\(([^)]+)\)/);    if (subjM)    criteria.subject = subjM[1];
+      const fromM = criteriaRaw.match(/from:\(([^)]+)\)/) || criteriaRaw.match(/from:(\S+)/);
+      if (fromM) criteria.from = fromM[1];
+      const toM   = criteriaRaw.match(/to:\(([^)]+)\)/)   || criteriaRaw.match(/to:(\S+)/);
+      if (toM)   criteria.to   = toM[1];
+      const subjM = criteriaRaw.match(/subject:\(([^)]+)\)/) || criteriaRaw.match(/subject:(\S+)/);
+      if (subjM) criteria.subject = subjM[1];
       if (!Object.keys(criteria).length && criteriaRaw) criteria.query = criteriaRaw;
 
       // Parse action string
