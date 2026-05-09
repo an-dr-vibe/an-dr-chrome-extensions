@@ -36,6 +36,21 @@ if (-not $chrome) {
     exit 1
 }
 
+# Enable Developer Mode in Chrome Preferences before launching
+$prefsPath = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Preferences"
+if (Test-Path $prefsPath) {
+    $prefs = Get-Content $prefsPath -Raw | ConvertFrom-Json
+    if (-not $prefs.extensions) {
+        $prefs | Add-Member -NotePropertyName extensions -NotePropertyValue ([PSCustomObject]@{})
+    }
+    if (-not $prefs.extensions.ui) {
+        $prefs.extensions | Add-Member -NotePropertyName ui -NotePropertyValue ([PSCustomObject]@{})
+    }
+    $prefs.extensions.ui | Add-Member -NotePropertyName developer_mode -NotePropertyValue $true -Force
+    $prefs | ConvertTo-Json -Depth 100 | Set-Content $prefsPath -Encoding UTF8
+    Write-Host "Developer mode enabled." -ForegroundColor Gray
+}
+
 # Kill ALL Chrome processes and wait until gone
 Write-Host "Closing Chrome..." -ForegroundColor Yellow
 Get-Process -Name "chrome" -ErrorAction SilentlyContinue | Stop-Process -Force
