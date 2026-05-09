@@ -3,7 +3,9 @@
   "name": "Hello World",
   "version": "1.0.0",
   "description": "A simple example Chrome extension",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_title": "Hello World Extension"
@@ -12,5 +14,6 @@
     "16": "icon16.png",
     "48": "icon48.png",
     "128": "icon128.png"
-  }
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9x5qt2RnjFB4Ko9TrqYIADY4+n0AY8ZCP50HmB6IRJml+IPk8ynp+UGPHsBVIl4pXtwf77Nv+S1Ti2ZbA3oy/ntRvZKGvIqsJteYpmx6Mkr89+Pak74rU87MsLzReMOnWJGrjtbxZgYy2pPQ4zWAs8X4KlJjnT9qx0/IFRP5Ss5K9H5u2hp/rWcZH6GyeZKlmIl1BhdZHMPtr+KYWk2rl12gfEuxbli0D0tjOOU7PoCM5o3zBbR/FGQRG3YAp0+NlP1albWkJZe0wq71iF0v+9fR359nEzNh1YtLxNfmA0VOpgkT7jFfIxAuRbkQ8oxCLUEwXGJl5aJ81i11nwY8oQIDAQAB"
 }
