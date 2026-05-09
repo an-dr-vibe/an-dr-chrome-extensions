@@ -34,6 +34,7 @@ Each folder in the repo root is a Chrome extension. Currently:
 - The popup is a **launcher**, not a feature itself — keep it thin
 - The options page is the **configuration hub** — all persistent settings go there
 - `content_scripts` and `background` logic must be scoped per feature (use filename prefixes or subfolders)
+- **Never work in a git worktree** — always work directly in the repository root (`an-dr-chrome-extensions/`). Worktrees add indirection, break relative paths in scripts, and make it harder to reload the extension in Chrome. If a worktree is open, close it and continue from the repo root.
 - **Bump `manifest.json` version on every change** following semver: `MAJOR.MINOR.PATCH`
   - `PATCH` — bug fix, style tweak, copy change
   - `MINOR` — new feature or capability added, backwards-compatible
