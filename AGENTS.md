@@ -35,6 +35,26 @@ Each folder in the repo root is a Chrome extension. Currently:
 - The options page is the **configuration hub** — all persistent settings go there
 - `content_scripts` and `background` logic must be scoped per feature (use filename prefixes or subfolders)
 
+## Features
+
+### Gmail Filters (`features/gmail-filters/`)
+
+| File          | Role                                                              |
+|---------------|-------------------------------------------------------------------|
+| `api.js`      | Gmail REST API wrapper — list/create/delete filters, list labels  |
+| `panel.js/css`| Options-page UI — filter list, new filter form                    |
+| `content.js/css` | Gmail content script — injects "Add to filter" button into open emails |
+
+**OAuth2 setup (one-time, per developer):**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) → create or select a project
+2. Enable the **Gmail API** (APIs & Services → Library → Gmail API)
+3. Create credentials: OAuth 2.0 Client ID → type **Chrome Extension** → paste the extension ID from `chrome://extensions`
+4. Copy the generated Client ID into `manifest.json` → `oauth2.client_id`
+5. Add the Client ID to the OAuth consent screen's test users list (while in testing mode)
+
+The extension ID changes when you reload unpacked — pin the extension to keep the ID stable. After changing the client ID, reload the extension.
+
 ## Installing
 
 Load unpacked in Chrome developer mode:

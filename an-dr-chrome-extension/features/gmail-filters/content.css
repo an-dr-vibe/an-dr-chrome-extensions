@@ -1,0 +1,26 @@
+.andr-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: "Google Sans", Roboto, sans-serif;
+  color: #3c4043;
+  margin-right: 6px;
+  vertical-align: middle;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.andr-filter-btn:hover {
+  background: #e8f0fe;
+  border-color: #1a73e8;
+  color: #1a73e8;
+}
+
+.andr-filter-icon {
+  font-size: 13px;
+}

@@ -3,11 +3,32 @@
   "name": "an-dr: Chrome Extension",
   "version": "1.0.0",
   "description": "an-dr Chrome Extension",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "identity"],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://gmail.googleapis.com/*",
+    "https://www.googleapis.com/*"
+  ],
+  "oauth2": {
+    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/gmail.settings.basic",
+      "https://www.googleapis.com/auth/gmail.labels"
+    ]
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "an-dr: Chrome Extension"
   },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["features/gmail-filters/content.js"],
+      "css": ["features/gmail-filters/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
   "icons": {
     "16": "icon16.png",
     "48": "icon48.png",
