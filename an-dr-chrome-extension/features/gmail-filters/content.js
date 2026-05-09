@@ -202,31 +202,49 @@
   function getLabelsFromDOM() {
     const seen = new Set();
     const labels = [];
-    // Gmail renders labels in the sidebar as links with #label/Name hrefs
+
     document.querySelectorAll('a[href]').forEach(a => {
-      const m = (a.getAttribute('href') || '').match(/#label\/(.+)/);
-      if (m) {
-        const name = decodeURIComponent(m[1]).replace(/\+/g, ' ').trim();
-        if (name && !seen.has(name)) { seen.add(name); labels.push(name); }
-      }
-    });
-    // Fallback: nav items with aria-label in the sidebar
-    if (!labels.length) {
-      document.querySelectorAll('[data-tooltip], [aria-label]').forEach(el => {
-        const t = (el.getAttribute('data-tooltip') || el.getAttribute('aria-label') || '').trim();
-        if (t && !seen.has(t) && el.closest('nav, [role=navigation]')) {
-          seen.add(t); labels.push(t);
+      if (!(a.getAttribute('href') || '').includes('#label/')) return;
+
+      // 1. aria-label is the most reliable — Gmail puts the full name there
+      //    but appends ", N conversations" — strip that suffix
+      let name = (a.getAttribute('aria-label') || '')
+        .replace(/,\s*\d[\d,]*\s*(unread\s*)?(conversations?|messages?|threads?)?$/i, '')
+        .trim();
+
+      // 2. Walk child elements and take the first text-only node that isn't a number
+      if (!name) {
+        for (const el of a.querySelectorAll('*')) {
+          if (el.children.length) continue;           // skip parents
+          const t = el.textContent.trim();
+          if (t && !/^\d+$/.test(t)) { name = t; break; }
         }
-      });
-    }
+      }
+
+      // 3. Href as last resort (won't have emoji but better than nothing)
+      if (!name) {
+        const m = (a.getAttribute('href') || '').match(/#label\/(.+)/);
+        if (m) name = decodeURIComponent(m[1]).replace(/\+/g, ' ').trim();
+      }
+
+      if (name && !seen.has(name)) { seen.add(name); labels.push(name); }
+    });
+
     return labels;
   }
 
-  // Match a bare label name (no emoji) against the full sidebar list
+  // Match a bare label name against the full sidebar list (which may include emoji)
   function enrichLabelName(bare, allLabels) {
     if (!bare) return bare;
     const lower = bare.toLowerCase();
-    return allLabels.find(l => l.toLowerCase().startsWith(lower) || l.toLowerCase() === lower) || bare;
+    // Exact match first
+    const exact = allLabels.find(l => l.toLowerCase() === lower);
+    if (exact) return exact;
+    // Sidebar name starts with the bare name then has a space or emoji
+    return allLabels.find(l => {
+      const ll = l.toLowerCase();
+      return ll.startsWith(lower + ' ') || ll.startsWith(lower + ' ');
+    }) || bare;
   }
 
   function labelInputHTML(value) {
