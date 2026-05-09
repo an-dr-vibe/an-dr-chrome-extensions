@@ -50,14 +50,16 @@ Start-Process -FilePath $chrome -ArgumentList "--remote-debugging-port=9222"
 Start-Sleep -Seconds 2
 
 # Wait for Chrome to be ready
+Write-Host "Waiting for Chrome debugger on port 9222..." -ForegroundColor Gray
 $ready = $false
 for ($i = 0; $i -lt 20; $i++) {
+    Write-Host "  attempt $($i+1)/20..." -ForegroundColor DarkGray
     try {
-        Invoke-RestMethod "http://localhost:9222/json/version" -ErrorAction Stop | Out-Null
+        Invoke-RestMethod "http://localhost:9222/json/version" -TimeoutSec 1 -ErrorAction Stop | Out-Null
         $ready = $true; break
     } catch { Start-Sleep -Milliseconds 500 }
 }
-if (-not $ready) { Write-Host "Chrome did not start." -ForegroundColor Red; exit 1 }
+if (-not $ready) { Write-Host "Chrome did not open debugger port. Is another Chrome already running?" -ForegroundColor Red; exit 1 }
 
 # Open chrome://extensions in a new tab
 Invoke-RestMethod "http://localhost:9222/json/new?chrome://extensions" | Out-Null
