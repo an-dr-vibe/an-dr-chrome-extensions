@@ -15,11 +15,18 @@ if (-not $isAdmin) {
     exit
 }
 
-$repoDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptPath = $MyInvocation.MyCommand.Path
+if (-not $scriptPath) {
+    $scriptPath = $PSCommandPath
+}
+$repoDir = Split-Path -Parent $scriptPath
+$repoDir = (Resolve-Path $repoDir).Path
+
 $chromeExtDir = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Extensions"
 
 Write-Host ""
 Write-Host "an-dr Chrome Extensions - Symlink Installer" -ForegroundColor Cyan
+Write-Host "Repository: $repoDir" -ForegroundColor Gray
 Write-Host ""
 
 # Check if Chrome extensions folder exists
@@ -29,8 +36,13 @@ if (-not (Test-Path $chromeExtDir)) {
     exit 1
 }
 
-# Find all extensions
-$manifests = Get-ChildItem -Path $repoDir -Recurse -Depth 2 -Filter "manifest.json"
+# Find all extensions (search current dir and subdirs)
+$manifests = @()
+Get-ChildItem -Path $repoDir -Recurse -Filter "manifest.json" -ErrorAction SilentlyContinue | Where-Object {
+    $_.FullName -notlike "*\.git*" -and $_.FullName -notlike "*\.claude*"
+} | ForEach-Object {
+    $manifests += $_
+}
 
 if ($manifests.Count -eq 0) {
     Write-Host "No extensions found!" -ForegroundColor Red
