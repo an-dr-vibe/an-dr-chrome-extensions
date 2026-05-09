@@ -2,71 +2,36 @@
 
 Personal Chrome extensions for productivity and development.
 
-## Quick Start
+## Setup
 
-### Option 1: Permanent Integration via Symlinks (Recommended)
-
-This integrates extensions into your regular Chrome profile permanently:
+Install extensions into your Chrome profile via symlinks:
 
 ```powershell
-.\setup-symlinks.bat
+.\install.ps1
 ```
 
-Or from PowerShell (requires Admin):
-```powershell
-.\setup-symlinks.ps1
-```
+This requires Administrator privileges. You'll be prompted automatically if needed.
 
 Then:
 1. Close Chrome completely
 2. Open Chrome normally
-3. Go to `chrome://extensions` and enable Developer Mode if prompted
-4. Extensions will appear automatically!
-
-### Option 2: Launch with Extensions (no permanent changes)
-
-For a temporary session without modifying Chrome:
-
-**Desktop shortcut:**
-```powershell
-.\create-shortcut.ps1
-```
-Then double-click the shortcut on your desktop.
-
-**Quick launcher:**
-```powershell
-.\run.ps1
-```
-Or double-click `run.bat`
+3. Extensions appear in `chrome://extensions` automatically
+4. Enable Developer mode if prompted
 
 ## Install on a new machine
 
-Paste this into PowerShell:
-
 ```powershell
 irm https://raw.githubusercontent.com/YOUR_USER/an-dr-chrome-extensions/main/bootstrap.ps1 | iex
-```
-
-Then for permanent integration:
-
-```powershell
 cd ~/.chrome-an-dr
-.\setup-symlinks.bat
+.\install.ps1
 ```
 
 ## How it works
 
-### Symlink approach (recommended):
-- Creates symlinks from your extension folders into Chrome's Extensions directory
+- Creates symlinks from extension folders into Chrome's Extensions directory
 - Extensions integrate into your regular Chrome profile
 - Survives Chrome updates and restarts
-- Requires one-time Admin privilege for setup
-
-### Launcher approach:
-- Closes any running Chrome instance
-- Launches Chrome with `--load-extension` flags
-- Extensions load for that session only
-- Useful for testing or keeping extensions separate
+- One-time setup required
 
 ## Extensions
 

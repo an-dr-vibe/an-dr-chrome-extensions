@@ -1,66 +1,89 @@
-# an-dr Chrome Extensions - Installer
-# Installs extensions by adding them to Chrome's User Data folder
+# an-dr Chrome Extensions - Install via Symlinks
+# Creates symlinks in Chrome's Extensions folder for permanent integration
 # Run with: powershell -ExecutionPolicy Bypass -File install.ps1
 
-$RepoDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Check for admin privileges
+$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
-$manifests = Get-ChildItem -Path $RepoDir -Recurse -Depth 2 -Filter "manifest.json"
+if (-not $isAdmin) {
+    Write-Host "This script requires Administrator privileges." -ForegroundColor Red
+    Write-Host "Requesting elevation..." -ForegroundColor Yellow
+    Write-Host ""
 
-if ($manifests.Count -eq 0) {
-    Write-Host "No extensions found (no manifest.json in subdirectories)." -ForegroundColor Red
+    $arguments = "-ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    Start-Process powershell -ArgumentList $arguments -Verb RunAs
+    exit
+}
+
+$repoDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$chromeExtDir = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Extensions"
+
+Write-Host ""
+Write-Host "an-dr Chrome Extensions - Symlink Installer" -ForegroundColor Cyan
+Write-Host ""
+
+# Check if Chrome extensions folder exists
+if (-not (Test-Path $chromeExtDir)) {
+    Write-Host "Chrome Extensions folder not found at: $chromeExtDir" -ForegroundColor Red
+    Write-Host "Make sure Chrome is installed and has been launched at least once." -ForegroundColor Yellow
     exit 1
 }
 
-Write-Host ""
-Write-Host "an-dr Chrome Extensions Installer" -ForegroundColor Cyan
-Write-Host ""
+# Find all extensions
+$manifests = Get-ChildItem -Path $repoDir -Recurse -Depth 2 -Filter "manifest.json"
+
+if ($manifests.Count -eq 0) {
+    Write-Host "No extensions found!" -ForegroundColor Red
+    exit 1
+}
+
 Write-Host "Found $($manifests.Count) extension(s):" -ForegroundColor White
 Write-Host ""
 
-$extensionPaths = @()
 foreach ($manifest in $manifests) {
-    $dir = $manifest.DirectoryName
+    $extFolder = $manifest.DirectoryName
+    $extName = Split-Path -Leaf $extFolder
     $json = Get-Content $manifest.FullName -Raw | ConvertFrom-Json
-    $name = if ($json.name) { $json.name } else { Split-Path -Leaf $dir }
+    $displayName = $json.name
 
-    Write-Host "  * $name" -ForegroundColor Yellow
-    Write-Host "    Path: $dir" -ForegroundColor Gray
+    Write-Host "  * $displayName" -ForegroundColor Yellow
+    Write-Host "    Folder: $extFolder" -ForegroundColor Gray
 
-    $extensionPaths += $dir
+    # Generate a deterministic extension ID from the folder name
+    $hashInput = $extFolder.ToLower()
+    $hash = [System.Security.Cryptography.HashAlgorithm]::Create('sha256')
+    $hashBytes = $hash.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($hashInput))
+    $extId = ([BitConverter]::ToString($hashBytes).Replace('-', '').ToLower().Substring(0, 32))
+
+    $symlinkPath = "$chromeExtDir\$extId\0.0.1_0"
+    $symlinkParentDir = Split-Path -Parent $symlinkPath
+
+    if (-not (Test-Path $symlinkParentDir)) {
+        New-Item -ItemType Directory -Path $symlinkParentDir -Force | Out-Null
+    }
+
+    # Remove existing symlink/folder if it exists
+    if (Test-Path $symlinkPath) {
+        Remove-Item $symlinkPath -Force -ErrorAction SilentlyContinue
+    }
+
+    # Create symlink
+    try {
+        New-Item -ItemType SymbolicLink -Path $symlinkPath -Target $extFolder -Force | Out-Null
+        Write-Host "    ID: $extId" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "    ERROR: Failed to create symlink!" -ForegroundColor Red
+        exit 1
+    }
 }
 
 Write-Host ""
-
-# Chrome paths
-$chromePaths = @(
-    "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
-    "$env:ProgramFiles(x86)\Google\Chrome\Application\chrome.exe",
-    "$env:LocalAppData\Google\Chrome\Application\chrome.exe"
-)
-
-$chrome = $chromePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-if (-not $chrome) {
-    Write-Host "Chrome not found - please install it or add to PATH" -ForegroundColor Red
-    exit 1
-}
-
-# Kill existing Chrome processes
-Write-Host "Closing Chrome..." -ForegroundColor Yellow
-Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Milliseconds 500
-
-# Build load-extension arguments
-$args = @()
-foreach ($extPath in $extensionPaths) {
-    $args += "--load-extension=`"$extPath`""
-}
-
-Write-Host "Launching Chrome with extensions..." -ForegroundColor Green
-Write-Host "  Command: & $chrome $($args -join ' ')" -ForegroundColor Gray
+Write-Host "Done! Extensions installed." -ForegroundColor Green
 Write-Host ""
-
-# Launch Chrome with extensions
-& $chrome $args
-
-Write-Host "Chrome launched! Extensions should be loaded." -ForegroundColor Green
+Write-Host "Next steps:" -ForegroundColor Cyan
+Write-Host "  1. Close Chrome completely"
+Write-Host "  2. Open Chrome normally"
+Write-Host "  3. Extensions will appear in chrome://extensions"
+Write-Host "  4. Enable Developer mode if prompted"
+Write-Host ""
