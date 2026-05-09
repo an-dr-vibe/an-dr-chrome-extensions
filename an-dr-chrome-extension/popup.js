@@ -1,4 +1,4 @@
 // an-dr: Chrome Extension
 document.getElementById('btn-gmail-filters').addEventListener('click', () => {
-  chrome.runtime.openOptionsPage();
+  chrome.tabs.create({ url: 'https://mail.google.com/mail/#settings/filters' });
 });
