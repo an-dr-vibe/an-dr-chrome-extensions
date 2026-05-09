@@ -1,4 +1,5 @@
 # an-dr Chrome Extensions - Installer
+# Automatically loads extensions into Chrome without manual "Load unpacked"
 # Run with: powershell -ExecutionPolicy Bypass -File install.ps1
 
 $RepoDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -16,6 +17,7 @@ Write-Host ""
 Write-Host "Found $($manifests.Count) extension(s):" -ForegroundColor White
 Write-Host ""
 
+$extensionPaths = @()
 foreach ($manifest in $manifests) {
     $dir = $manifest.DirectoryName
     $json = Get-Content $manifest.FullName -Raw | ConvertFrom-Json
@@ -23,16 +25,13 @@ foreach ($manifest in $manifests) {
 
     Write-Host "  * $name" -ForegroundColor Yellow
     Write-Host "    Path: $dir" -ForegroundColor Gray
+
+    $extensionPaths += $dir
 }
 
 Write-Host ""
-Write-Host "Steps:" -ForegroundColor White
-Write-Host "  1. Go to chrome://extensions"
-Write-Host "  2. Enable Developer mode (top-right toggle)"
-Write-Host "  3. Click 'Load unpacked' and select the folder above"
-Write-Host ""
 
-# Try to open Chrome
+# Try to find Chrome
 $chromePaths = @(
     "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
     "$env:ProgramFiles(x86)\Google\Chrome\Application\chrome.exe",
@@ -42,8 +41,14 @@ $chromePaths = @(
 $chrome = $chromePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 if ($chrome) {
-    Write-Host "Opening chrome://extensions..." -ForegroundColor Green
-    Start-Process $chrome "chrome://extensions"
+    Write-Host "Launching Chrome with extensions..." -ForegroundColor Green
+
+    # Build --load-extension argument
+    $loadExtArg = "--load-extension=`"$($extensionPaths -join '","')`""
+
+    # Launch Chrome with extensions loaded
+    & $chrome $loadExtArg
 } else {
-    Write-Host "Chrome not found - please open it manually and navigate to chrome://extensions" -ForegroundColor DarkYellow
+    Write-Host "Chrome not found - please install it or add to PATH" -ForegroundColor Red
+    exit 1
 }
