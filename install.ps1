@@ -11,7 +11,7 @@ Write-Host ""
 
 # Find extension folders (any subdir containing manifest.json, excluding .git/.claude)
 $manifests = Get-ChildItem -LiteralPath $repoDir -Recurse -Filter "manifest.json" |
-    Where-Object { $_.FullName -notmatch '\\\.git\\|\\\.claude\\' }
+    Where-Object { $_.DirectoryName -notmatch '\\.(git|claude)' }
 
 if ($manifests.Count -eq 0) {
     Write-Host "No extensions found (no manifest.json in subdirectories)." -ForegroundColor Red
