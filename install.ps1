@@ -1,5 +1,5 @@
 # an-dr Chrome Extensions - Installer
-# Automatically loads extensions into Chrome without manual "Load unpacked"
+# Installs extensions by adding them to Chrome's User Data folder
 # Run with: powershell -ExecutionPolicy Bypass -File install.ps1
 
 $RepoDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -31,7 +31,7 @@ foreach ($manifest in $manifests) {
 
 Write-Host ""
 
-# Try to find Chrome
+# Chrome paths
 $chromePaths = @(
     "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
     "$env:ProgramFiles(x86)\Google\Chrome\Application\chrome.exe",
@@ -40,15 +40,27 @@ $chromePaths = @(
 
 $chrome = $chromePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-if ($chrome) {
-    Write-Host "Launching Chrome with extensions..." -ForegroundColor Green
-
-    # Build --load-extension argument
-    $loadExtArg = "--load-extension=`"$($extensionPaths -join '","')`""
-
-    # Launch Chrome with extensions loaded
-    & $chrome $loadExtArg
-} else {
+if (-not $chrome) {
     Write-Host "Chrome not found - please install it or add to PATH" -ForegroundColor Red
     exit 1
 }
+
+# Kill existing Chrome processes
+Write-Host "Closing Chrome..." -ForegroundColor Yellow
+Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Milliseconds 500
+
+# Build load-extension arguments
+$args = @()
+foreach ($extPath in $extensionPaths) {
+    $args += "--load-extension=`"$extPath`""
+}
+
+Write-Host "Launching Chrome with extensions..." -ForegroundColor Green
+Write-Host "  Command: & $chrome $($args -join ' ')" -ForegroundColor Gray
+Write-Host ""
+
+# Launch Chrome with extensions
+& $chrome $args
+
+Write-Host "Chrome launched! Extensions should be loaded." -ForegroundColor Green

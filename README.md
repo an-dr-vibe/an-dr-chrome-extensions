@@ -2,6 +2,25 @@
 
 Personal Chrome extensions for productivity and development.
 
+## Quick Start
+
+**Option 1: Desktop shortcut (easiest)**
+```powershell
+.\create-shortcut.ps1
+```
+Then just double-click the shortcut on your desktop to launch Chrome with extensions!
+
+**Option 2: Quick launcher**
+```powershell
+.\run.ps1
+```
+Or just double-click `run.bat`
+
+**Option 3: Full install**
+```powershell
+.\install.ps1
+```
+
 ## Install on a new machine
 
 Paste this into PowerShell:
@@ -10,21 +29,20 @@ Paste this into PowerShell:
 irm https://raw.githubusercontent.com/YOUR_USER/an-dr-chrome-extensions/main/bootstrap.ps1 | iex
 ```
 
-This will:
-
-1. Clone the repo to `~\.chrome-an-dr`
-2. Open `chrome://extensions`
-3. Print each extension path to load
-
-That's it! Chrome launches with all extensions automatically loaded.
-
-## Update
-
+Then run:
 ```powershell
-& "$HOME\.chrome-an-dr\install.ps1"
+cd ~/.chrome-an-dr
+.\create-shortcut.ps1
 ```
 
-Or re-run the bootstrap — it pulls latest automatically.
+## How it works
+
+The launcher scripts:
+1. Close any running Chrome instance
+2. Launch Chrome with `--load-extension` flags pointing to each extension folder
+3. Extensions load immediately without requiring "Load unpacked"
+
+**Note:** Extensions only persist while using the launcher. They won't show in a normal Chrome session. This is intentional to keep them separate from your regular Chrome profile.
 
 ## Extensions
 
