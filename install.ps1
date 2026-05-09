@@ -51,9 +51,11 @@ if (Get-Process -Name "chrome" -ErrorAction SilentlyContinue) {
 }
 
 # Launch Chrome with all extensions loaded from repo paths
-$loadArg = "--load-extension=" + ($extPaths -join ",")
+$extList = $extPaths -join ","
+$loadArg = "--load-extension=$extList"
+Write-Host "Command: `"$chrome`" $loadArg" -ForegroundColor Gray
 Write-Host "Launching Chrome..." -ForegroundColor Green
-Start-Process -FilePath $chrome -ArgumentList $loadArg
+& $chrome $loadArg
 
 Write-Host "Done! Extensions loaded from repo." -ForegroundColor Green
 Write-Host "Note: enable Developer mode in chrome://extensions if prompted." -ForegroundColor Gray
