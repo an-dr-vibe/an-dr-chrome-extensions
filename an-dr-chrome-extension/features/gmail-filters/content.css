@@ -1,4 +1,269 @@
-.andr-filter-btn {
+/* ── Filter settings panel ──────────────────────────────────────────────── */
+
+#andr-gf-panel {
+  font-family: "Google Sans", Roboto, Arial, sans-serif;
+  font-size: 13px;
+  color: #202124;
+  max-width: 800px;
+  padding: 8px 0 24px;
+}
+
+.andr-gf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.andr-gf-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #202124;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.andr-gf-count {
+  font-size: 12px;
+  font-weight: 500;
+  background: #e8f0fe;
+  color: #1a73e8;
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.andr-gf-header-btns {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── New-filter form ───────────────────────────────────────────────────── */
+
+.andr-gf-new-form {
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.andr-gf-new-title {
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #202124;
+}
+
+/* ── Filter list ───────────────────────────────────────────────────────── */
+
+.andr-gf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.andr-gf-empty {
+  color: #5f6368;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+/* ── Card ──────────────────────────────────────────────────────────────── */
+
+.andr-gf-card {
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+
+.andr-gf-card:hover {
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
+
+.andr-gf-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.andr-gf-card-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.andr-row {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 13px;
+  color: #3c4043;
+}
+
+.andr-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  background: #e8f0fe;
+  color: #1a73e8;
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.andr-badge-then {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.andr-gf-card-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Edit panel ────────────────────────────────────────────────────────── */
+
+.andr-gf-edit-panel {
+  border-top: 1px solid #dadce0;
+  padding: 14px;
+  background: #fafafa;
+}
+
+/* ── Shared form styles ────────────────────────────────────────────────── */
+
+.andr-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.andr-form-grid label,
+.andr-gf-new-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #5f6368;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+
+.andr-form-grid input,
+.andr-gf-new-form input[type=text],
+.andr-gf-edit-panel input[type=text],
+.andr-gf-new-form input:not([type]),
+.andr-gf-edit-panel input:not([type]) {
+  padding: 6px 8px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #202124;
+  background: #fff;
+  font-family: inherit;
+}
+
+.andr-form-grid input:focus,
+.andr-gf-new-form input:focus,
+.andr-gf-edit-panel input:focus {
+  outline: none;
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px #e8f0fe;
+}
+
+.andr-form-section {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #9aa0a6;
+  margin-bottom: 7px;
+}
+
+.andr-form-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-bottom: 12px;
+}
+
+.andr-form-checks label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #3c4043;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.andr-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.andr-save-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #9aa0a6;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────── */
+
+.andr-btn-primary {
+  padding: 7px 16px;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+}
+.andr-btn-primary:hover { background: #1557b0; }
+.andr-btn-primary:disabled { opacity: .55; cursor: default; }
+
+.andr-btn-ghost {
+  padding: 7px 12px;
+  background: transparent;
+  color: #1a73e8;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+}
+.andr-btn-ghost:hover { background: #f1f3f4; }
+
+.andr-btn-danger {
+  padding: 7px 12px;
+  background: transparent;
+  color: #c5221f;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+}
+.andr-btn-danger:hover { background: #fce8e6; border-color: #c5221f; }
+
+/* ── Email-view "Add to filter" button ─────────────────────────────────── */
+
+#andr-add-filter-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -11,16 +276,9 @@
   font-family: "Google Sans", Roboto, sans-serif;
   color: #3c4043;
   margin-right: 6px;
-  vertical-align: middle;
-  transition: background 0.15s, border-color 0.15s;
 }
-
-.andr-filter-btn:hover {
+#andr-add-filter-btn:hover {
   background: #e8f0fe;
   border-color: #1a73e8;
   color: #1a73e8;
-}
-
-.andr-filter-icon {
-  font-size: 13px;
 }
