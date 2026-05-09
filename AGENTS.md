@@ -34,6 +34,10 @@ Each folder in the repo root is a Chrome extension. Currently:
 - The popup is a **launcher**, not a feature itself — keep it thin
 - The options page is the **configuration hub** — all persistent settings go there
 - `content_scripts` and `background` logic must be scoped per feature (use filename prefixes or subfolders)
+- **Bump `manifest.json` version on every change** following semver: `MAJOR.MINOR.PATCH`
+  - `PATCH` — bug fix, style tweak, copy change
+  - `MINOR` — new feature or capability added, backwards-compatible
+  - `MAJOR` — breaking change (removed feature, storage key migration required, manifest permission removed)
 
 ## Features
 

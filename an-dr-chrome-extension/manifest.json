@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "an-dr: Chrome Extension",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "an-dr Chrome Extension",
   "permissions": ["storage", "activeTab", "identity"],
   "host_permissions": [
