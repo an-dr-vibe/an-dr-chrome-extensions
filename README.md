@@ -16,10 +16,7 @@ This will:
 2. Open `chrome://extensions`
 3. Print each extension path to load
 
-Then in Chrome:
-
-- Enable **Developer mode** (toggle, top-right of `chrome://extensions`)
-- Click **Load unpacked** and select the printed folder
+That's it! Chrome launches with all extensions automatically loaded.
 
 ## Update
 
