@@ -3,6 +3,12 @@
 # Each extension gets a stable RSA key -> stable ID -> registered at HKCU:\SOFTWARE\Google\Chrome\Extensions\<id>
 # Run with: pwsh .\install.ps1
 
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Start-Process pwsh -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    exit
+}
+
 $repoDir = $PSScriptRoot
 
 Write-Host ""
@@ -53,15 +59,21 @@ foreach ($manifest in $manifests) {
         $keyBytes = [Convert]::FromBase64String($json.key)
     }
 
-    $extId    = Compute-ExtensionId $keyBytes
-    $regPath  = "HKCU:\SOFTWARE\Google\Chrome\Extensions\$extId"
+    $extId = Compute-ExtensionId $keyBytes
 
-    New-Item -Path $regPath -Force | Out-Null
-    Set-ItemProperty -Path $regPath -Name path    -Value $extFolder
-    Set-ItemProperty -Path $regPath -Name version -Value $version
+    # Chrome reads HKLM for external extensions, not HKCU
+    # Write to both the standard and Wow6432Node paths (covers 32-bit and 64-bit Chrome)
+    foreach ($regPath in @(
+        "HKLM:\SOFTWARE\Google\Chrome\Extensions\$extId",
+        "HKLM:\SOFTWARE\WOW6432Node\Google\Chrome\Extensions\$extId"
+    )) {
+        New-Item -Path $regPath -Force | Out-Null
+        Set-ItemProperty -Path $regPath -Name path    -Value $extFolder
+        Set-ItemProperty -Path $regPath -Name version -Value $version
+        Write-Host "    Reg: $regPath" -ForegroundColor DarkGray
+    }
 
     Write-Host "    ID:  $extId" -ForegroundColor Green
-    Write-Host "    Reg: $regPath" -ForegroundColor DarkGray
     Write-Host ""
 }
 
