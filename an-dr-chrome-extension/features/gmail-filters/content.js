@@ -9,6 +9,78 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function parseOrList(str) {
+    if (!str) return [];
+    return str.split(/\s+OR\s+/i).map(s => s.trim()).filter(Boolean);
+  }
+
+  function orList(arr) {
+    return arr.join(' OR ');
+  }
+
+  // ── Tag (chip) input ──────────────────────────────────────────────────────
+
+  function chipInputHTML(name, values, placeholder) {
+    const chips = values.map(v =>
+      `<span class="andr-chip" data-value="${esc(v)}">${esc(v)}<button class="andr-chip-rm" type="button" tabindex="-1">×</button></span>`
+    ).join('');
+    return `<div class="andr-chip-input" data-name="${name}">
+      ${chips}<input class="andr-chip-text" type="text" placeholder="${values.length ? '' : esc(placeholder)}">
+    </div>`;
+  }
+
+  function wireChipInputs(root) {
+    root.querySelectorAll('.andr-chip-input').forEach(box => {
+      const textInput = box.querySelector('.andr-chip-text');
+
+      box.addEventListener('click', e => {
+        if (!e.target.classList.contains('andr-chip-rm')) textInput.focus();
+      });
+
+      box.addEventListener('click', e => {
+        if (e.target.classList.contains('andr-chip-rm')) {
+          e.target.closest('.andr-chip').remove();
+          textInput.focus();
+        }
+      });
+
+      textInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === 'Tab' || e.key === ',') {
+          e.preventDefault();
+          const val = textInput.value.replace(/,/g, '').trim();
+          if (val) { addChip(box, textInput, val); }
+        } else if (e.key === 'Backspace' && !textInput.value) {
+          const chips = box.querySelectorAll('.andr-chip');
+          if (chips.length) chips[chips.length - 1].remove();
+        }
+      });
+
+      textInput.addEventListener('blur', () => {
+        const val = textInput.value.replace(/,/g, '').trim();
+        if (val) addChip(box, textInput, val);
+      });
+    });
+  }
+
+  function addChip(box, textInput, val) {
+    const chip = document.createElement('span');
+    chip.className = 'andr-chip';
+    chip.dataset.value = val;
+    chip.innerHTML = `${esc(val)}<button class="andr-chip-rm" type="button" tabindex="-1">×</button>`;
+    box.insertBefore(chip, textInput);
+    textInput.value = '';
+    textInput.placeholder = '';
+  }
+
+  function readChipInput(root, name) {
+    const box = root.querySelector(`.andr-chip-input[data-name="${name}"]`);
+    if (!box) return '';
+    const chips = Array.from(box.querySelectorAll('.andr-chip')).map(c => c.dataset.value);
+    const pending = box.querySelector('.andr-chip-text')?.value?.trim();
+    if (pending) chips.push(pending);
+    return orList(chips);
+  }
+
   function waitFor(check, cb, timeout = 8000, interval = 400) {
     const deadline = Date.now() + timeout;
     (function tick() {
@@ -144,12 +216,14 @@
   }
 
   function filterForm(id, c, a) {
+    const fromVals = parseOrList(c.from || '');
+    const toVals   = parseOrList(c.to   || '');
     return `
-      <div class="andr-form-grid">
-        <label>From    <input name="from"    value="${esc(c.from    || '')}"></label>
-        <label>To      <input name="to"      value="${esc(c.to      || '')}"></label>
-        <label>Subject <input name="subject" value="${esc(c.subject || '')}"></label>
-        <label>Has words <input name="query" value="${esc(c.query   || '')}"></label>
+      <div class="andr-form-grid andr-form-grid-tall">
+        <label>From ${chipInputHTML('from', fromVals, 'sender@example.com')}</label>
+        <label>To   ${chipInputHTML('to',   toVals,   'recipient@example.com')}</label>
+        <label>Subject  <input name="subject"  value="${esc(c.subject || '')}"></label>
+        <label>Has words <input name="query"   value="${esc(c.query   || '')}"></label>
       </div>
       <div class="andr-form-section">Actions</div>
       <div class="andr-form-checks">
@@ -228,6 +302,7 @@
       </div>`;
 
     container.insertAdjacentElement('beforebegin', panel);
+    wireChipInputs(panel);
     wirePanel(panel, filters);
   }
 
@@ -235,7 +310,10 @@
     const v = name => container.querySelector(`[name="${name}"]`)?.value?.trim() || '';
     const c = name => container.querySelector(`[name="${name}"]`)?.checked || false;
     return {
-      from: v('from'), to: v('to'), subject: v('subject'), query: v('query'),
+      from:      readChipInput(container, 'from'),
+      to:        readChipInput(container, 'to'),
+      subject:   v('subject'),
+      query:     v('query'),
       skipInbox: c('skipInbox'), markRead: c('markRead'),
       neverSpam: c('neverSpam'), star: c('star'), label: v('label'),
     };
@@ -361,9 +439,11 @@
           if (panel) {
             const newForm = panel.querySelector('#andr-gf-new-form');
             const fromInput = newForm?.querySelector('[name="from"]');
-            if (newForm && fromInput) {
+            if (newForm) {
               newForm.style.display = 'block';
-              fromInput.value = sender;
+              const fromBox = newForm.querySelector('.andr-chip-input[data-name="from"]');
+              const fromText = fromBox?.querySelector('.andr-chip-text');
+              if (fromBox && fromText) addChip(fromBox, fromText, sender);
               newForm.scrollIntoView({ behavior: 'smooth' });
             }
           }

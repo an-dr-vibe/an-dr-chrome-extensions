@@ -157,6 +157,80 @@
   letter-spacing: .3px;
 }
 
+/* ── Chip (tag) input ──────────────────────────────────────────────────── */
+
+.andr-chip-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: text;
+  min-height: 34px;
+}
+
+.andr-chip-input:focus-within {
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px #e8f0fe;
+}
+
+.andr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #e8f0fe;
+  color: #1a55b0;
+  border-radius: 12px;
+  padding: 2px 4px 2px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.andr-chip-rm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  color: #1a55b0;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.andr-chip-rm:hover {
+  background: #c5d8fb;
+}
+
+.andr-chip-text {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-size: 13px;
+  color: #202124;
+  background: transparent;
+  font-family: inherit;
+  min-width: 120px;
+  flex: 1;
+}
+
+.andr-form-grid-tall {
+  align-items: start;
+}
+
 .andr-form-grid input,
 .andr-gf-new-form input[type=text],
 .andr-gf-edit-panel input[type=text],
