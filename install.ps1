@@ -81,9 +81,24 @@ foreach ($manifest in $manifests) {
 Write-Host ""
 Write-Host "Done! Extensions installed." -ForegroundColor Green
 Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "  1. Close Chrome completely"
-Write-Host "  2. Open Chrome normally"
-Write-Host "  3. Extensions will appear in chrome://extensions"
-Write-Host "  4. Enable Developer mode if prompted"
-Write-Host ""
+
+# Find and launch Chrome
+$chromePaths = @(
+    "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+    "$env:ProgramFiles(x86)\Google\Chrome\Application\chrome.exe",
+    "$env:LocalAppData\Google\Chrome\Application\chrome.exe"
+)
+
+$chrome = $chromePaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if ($chrome) {
+    Write-Host "Closing Chrome..." -ForegroundColor Yellow
+    Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force
+    Start-Sleep -Milliseconds 800
+
+    Write-Host "Launching Chrome with extensions..." -ForegroundColor Green
+    & $chrome
+    Write-Host "Chrome launched! Extensions should appear in chrome://extensions" -ForegroundColor Green
+} else {
+    Write-Host "Note: Open Chrome normally to see your extensions." -ForegroundColor Yellow
+}
