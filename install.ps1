@@ -51,19 +51,27 @@ if (Test-Path $prefsPath) {
     Write-Host "Developer mode enabled." -ForegroundColor Gray
 }
 
-# Kill ALL Chrome processes and wait until gone
+# Kill ALL Chrome-related processes and wait until fully gone
 Write-Host "Closing Chrome..." -ForegroundColor Yellow
-Get-Process -Name "chrome" -ErrorAction SilentlyContinue | Stop-Process -Force
-$timeout = 10
+"chrome", "chrome_crashpad_handler", "GoogleCrashHandler", "GoogleCrashHandler64" | ForEach-Object {
+    Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force
+}
+$timeout = 20
 while ((Get-Process -Name "chrome" -ErrorAction SilentlyContinue) -and $timeout -gt 0) {
     Start-Sleep -Milliseconds 500
     $timeout--
 }
-
 if (Get-Process -Name "chrome" -ErrorAction SilentlyContinue) {
     Write-Host "Chrome is still running - please close it manually and re-run." -ForegroundColor Red
     exit 1
 }
+
+# Delete SingletonLock so Chrome starts fresh (not reusing an existing instance)
+$lock = "$env:LOCALAPPDATA\Google\Chrome\User Data\SingletonLock"
+if (Test-Path $lock) { Remove-Item $lock -Force }
+$lock2 = "$env:LOCALAPPDATA\Google\Chrome\User Data\SingletonSocket"
+if (Test-Path $lock2) { Remove-Item $lock2 -Force }
+Start-Sleep -Milliseconds 300
 
 # Launch Chrome with all extensions loaded from repo paths
 $extList = $extPaths -join ","
