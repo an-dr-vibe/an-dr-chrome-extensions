@@ -1,6 +1,7 @@
 # an-dr Chrome Extensions - Installer
-# Loads extensions directly from repo into Chrome via --load-extension
-# Run with: sudo pwsh .\install.ps1
+# Registers extensions via Windows Registry so Chrome loads them on every startup.
+# Each extension gets a stable RSA key -> stable ID -> registered at HKCU:\SOFTWARE\Google\Chrome\Extensions\<id>
+# Run with: pwsh .\install.ps1
 
 $repoDir = $PSScriptRoot
 
@@ -18,11 +19,53 @@ if ($manifests.Count -eq 0) {
     exit 1
 }
 
-$extPaths = $manifests | ForEach-Object { $_.DirectoryName }
-
 Write-Host "Found $($manifests.Count) extension(s):" -ForegroundColor White
-$extPaths | ForEach-Object { Write-Host "  * $_" -ForegroundColor Yellow }
 Write-Host ""
+
+function Compute-ExtensionId($publicKeyBytes) {
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $hash = $sha256.ComputeHash($publicKeyBytes)
+    return ($hash[0..15] | ForEach-Object {
+        [char]([int][char]'a' + (($_ -band 0xF0) -shr 4))
+        [char]([int][char]'a' + ($_ -band 0x0F))
+    }) -join ''
+}
+
+foreach ($manifest in $manifests) {
+    $extFolder  = $manifest.DirectoryName
+    $json       = Get-Content -LiteralPath $manifest.FullName -Raw | ConvertFrom-Json
+    $version    = $json.version
+    $name       = $json.name
+
+    Write-Host "  * $name  (v$version)" -ForegroundColor Yellow
+    Write-Host "    Path: $extFolder" -ForegroundColor Gray
+
+    # Ensure the extension has a stable key in manifest.json
+    if (-not $json.key) {
+        Write-Host "    Generating RSA key..." -ForegroundColor DarkGray
+        $rsa        = [System.Security.Cryptography.RSA]::Create(2048)
+        $keyBytes   = $rsa.ExportSubjectPublicKeyInfo()
+        $keyBase64  = [Convert]::ToBase64String($keyBytes)
+        $json | Add-Member -NotePropertyName key -NotePropertyValue $keyBase64 -Force
+        $json | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $manifest.FullName -Encoding UTF8
+        Write-Host "    Key saved to manifest.json" -ForegroundColor DarkGray
+    } else {
+        $keyBytes = [Convert]::FromBase64String($json.key)
+    }
+
+    $extId    = Compute-ExtensionId $keyBytes
+    $regPath  = "HKCU:\SOFTWARE\Google\Chrome\Extensions\$extId"
+
+    New-Item -Path $regPath -Force | Out-Null
+    Set-ItemProperty -Path $regPath -Name path    -Value $extFolder
+    Set-ItemProperty -Path $regPath -Name version -Value $version
+
+    Write-Host "    ID:  $extId" -ForegroundColor Green
+    Write-Host "    Reg: $regPath" -ForegroundColor DarkGray
+    Write-Host ""
+}
+
+Write-Host "Done! Closing Chrome and relaunching..." -ForegroundColor Green
 
 # Find Chrome
 $chrome = @(
@@ -31,57 +74,17 @@ $chrome = @(
     "$env:LocalAppData\Google\Chrome\Application\chrome.exe"
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-if (-not $chrome) {
-    Write-Host "Chrome not found." -ForegroundColor Red
-    exit 1
-}
-
-# Enable Developer Mode in Chrome Preferences before launching
-$prefsPath = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Preferences"
-if (Test-Path $prefsPath) {
-    $prefs = Get-Content $prefsPath -Raw | ConvertFrom-Json
-    if (-not $prefs.extensions) {
-        $prefs | Add-Member -NotePropertyName extensions -NotePropertyValue ([PSCustomObject]@{})
+if ($chrome) {
+    "chrome", "chrome_crashpad_handler" | ForEach-Object {
+        Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force
     }
-    if (-not $prefs.extensions.ui) {
-        $prefs.extensions | Add-Member -NotePropertyName ui -NotePropertyValue ([PSCustomObject]@{})
+    $timeout = 20
+    while ((Get-Process -Name "chrome" -ErrorAction SilentlyContinue) -and $timeout -gt 0) {
+        Start-Sleep -Milliseconds 500; $timeout--
     }
-    $prefs.extensions.ui | Add-Member -NotePropertyName developer_mode -NotePropertyValue $true -Force
-    $prefs | ConvertTo-Json -Depth 100 | Set-Content $prefsPath -Encoding UTF8
-    Write-Host "Developer mode enabled." -ForegroundColor Gray
-}
+    $lock = "$env:LOCALAPPDATA\Google\Chrome\User Data\SingletonLock"
+    if (Test-Path $lock) { Remove-Item $lock -Force }
 
-# Kill ALL Chrome-related processes and wait until fully gone
-Write-Host "Closing Chrome..." -ForegroundColor Yellow
-"chrome", "chrome_crashpad_handler", "GoogleCrashHandler", "GoogleCrashHandler64" | ForEach-Object {
-    Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force
+    Start-Process -FilePath $chrome
+    Write-Host "Chrome launched. Extensions should appear in chrome://extensions." -ForegroundColor Green
 }
-$timeout = 20
-while ((Get-Process -Name "chrome" -ErrorAction SilentlyContinue) -and $timeout -gt 0) {
-    Start-Sleep -Milliseconds 500
-    $timeout--
-}
-if (Get-Process -Name "chrome" -ErrorAction SilentlyContinue) {
-    Write-Host "Chrome is still running - please close it manually and re-run." -ForegroundColor Red
-    exit 1
-}
-
-# Delete SingletonLock so Chrome starts fresh (not reusing an existing instance)
-$lock = "$env:LOCALAPPDATA\Google\Chrome\User Data\SingletonLock"
-if (Test-Path $lock) { Remove-Item $lock -Force }
-$lock2 = "$env:LOCALAPPDATA\Google\Chrome\User Data\SingletonSocket"
-if (Test-Path $lock2) { Remove-Item $lock2 -Force }
-Start-Sleep -Milliseconds 300
-
-# Launch Chrome with all extensions loaded from repo paths
-# Use a temp .bat file to avoid PowerShell mangling @ in the path
-$extList = $extPaths -join ","
-$bat = [IO.Path]::GetTempFileName() -replace '\.tmp$', '.bat'
-"@echo off`r`n`"$chrome`" --load-extension=`"$extList`"" | Set-Content $bat -Encoding ASCII
-Write-Host "Command: `"$chrome`" --load-extension=`"$extList`"" -ForegroundColor Gray
-Write-Host "Launching Chrome..." -ForegroundColor Green
-Start-Process -FilePath $bat
-
-Write-Host "Done! Extensions loaded from repo." -ForegroundColor Green
-Write-Host "Note: enable Developer mode in chrome://extensions if prompted." -ForegroundColor Gray
-Write-Host ""
