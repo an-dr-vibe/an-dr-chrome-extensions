@@ -1,13 +1,6 @@
 # an-dr Chrome Extensions - Installer
-# Registers extensions via Windows Registry so Chrome loads them on every startup.
-# Each extension gets a stable RSA key -> stable ID -> registered at HKCU:\SOFTWARE\Google\Chrome\Extensions\<id>
+# Uses Chrome DevTools Protocol to automate "Load unpacked" on chrome://extensions
 # Run with: pwsh .\install.ps1
-
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    Start-Process pwsh -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    exit
-}
 
 $repoDir = $PSScriptRoot
 
@@ -16,68 +9,18 @@ Write-Host "an-dr Chrome Extensions" -ForegroundColor Cyan
 Write-Host "Repo: $repoDir" -ForegroundColor Gray
 Write-Host ""
 
-# Find extension folders (any subdir containing manifest.json, excluding .git/.claude)
+# Find extension folders
 $manifests = Get-ChildItem -LiteralPath $repoDir -Recurse -Filter "manifest.json" |
     Where-Object { $_.DirectoryName -notmatch '\\.(git|claude)' }
 
 if ($manifests.Count -eq 0) {
-    Write-Host "No extensions found (no manifest.json in subdirectories)." -ForegroundColor Red
-    exit 1
+    Write-Host "No extensions found." -ForegroundColor Red; exit 1
 }
 
+$extPaths = $manifests | ForEach-Object { $_.DirectoryName }
 Write-Host "Found $($manifests.Count) extension(s):" -ForegroundColor White
+$extPaths | ForEach-Object { Write-Host "  * $_" -ForegroundColor Yellow }
 Write-Host ""
-
-function Compute-ExtensionId($publicKeyBytes) {
-    $sha256 = [System.Security.Cryptography.SHA256]::Create()
-    $hash = $sha256.ComputeHash($publicKeyBytes)
-    return ($hash[0..15] | ForEach-Object {
-        [char]([int][char]'a' + (($_ -band 0xF0) -shr 4))
-        [char]([int][char]'a' + ($_ -band 0x0F))
-    }) -join ''
-}
-
-foreach ($manifest in $manifests) {
-    $extFolder  = $manifest.DirectoryName
-    $json       = Get-Content -LiteralPath $manifest.FullName -Raw | ConvertFrom-Json
-    $version    = $json.version
-    $name       = $json.name
-
-    Write-Host "  * $name  (v$version)" -ForegroundColor Yellow
-    Write-Host "    Path: $extFolder" -ForegroundColor Gray
-
-    # Ensure the extension has a stable key in manifest.json
-    if (-not $json.key) {
-        Write-Host "    Generating RSA key..." -ForegroundColor DarkGray
-        $rsa        = [System.Security.Cryptography.RSA]::Create(2048)
-        $keyBytes   = $rsa.ExportSubjectPublicKeyInfo()
-        $keyBase64  = [Convert]::ToBase64String($keyBytes)
-        $json | Add-Member -NotePropertyName key -NotePropertyValue $keyBase64 -Force
-        $json | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $manifest.FullName -Encoding UTF8
-        Write-Host "    Key saved to manifest.json" -ForegroundColor DarkGray
-    } else {
-        $keyBytes = [Convert]::FromBase64String($json.key)
-    }
-
-    $extId = Compute-ExtensionId $keyBytes
-
-    # Chrome reads HKLM for external extensions, not HKCU
-    # Write to both the standard and Wow6432Node paths (covers 32-bit and 64-bit Chrome)
-    foreach ($regPath in @(
-        "HKLM:\SOFTWARE\Google\Chrome\Extensions\$extId",
-        "HKLM:\SOFTWARE\WOW6432Node\Google\Chrome\Extensions\$extId"
-    )) {
-        New-Item -Path $regPath -Force | Out-Null
-        Set-ItemProperty -Path $regPath -Name path    -Value $extFolder
-        Set-ItemProperty -Path $regPath -Name version -Value $version
-        Write-Host "    Reg: $regPath" -ForegroundColor DarkGray
-    }
-
-    Write-Host "    ID:  $extId" -ForegroundColor Green
-    Write-Host ""
-}
-
-Write-Host "Done! Closing Chrome and relaunching..." -ForegroundColor Green
 
 # Find Chrome
 $chrome = @(
@@ -86,17 +29,86 @@ $chrome = @(
     "$env:LocalAppData\Google\Chrome\Application\chrome.exe"
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-if ($chrome) {
-    "chrome", "chrome_crashpad_handler" | ForEach-Object {
-        Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force
-    }
-    $timeout = 20
-    while ((Get-Process -Name "chrome" -ErrorAction SilentlyContinue) -and $timeout -gt 0) {
-        Start-Sleep -Milliseconds 500; $timeout--
-    }
-    $lock = "$env:LOCALAPPDATA\Google\Chrome\User Data\SingletonLock"
-    if (Test-Path $lock) { Remove-Item $lock -Force }
+if (-not $chrome) { Write-Host "Chrome not found." -ForegroundColor Red; exit 1 }
 
-    Start-Process -FilePath $chrome
-    Write-Host "Chrome launched. Extensions should appear in chrome://extensions." -ForegroundColor Green
+# Kill Chrome fully
+Write-Host "Closing Chrome..." -ForegroundColor Yellow
+"chrome", "chrome_crashpad_handler" | ForEach-Object {
+    Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force
 }
+$timeout = 20
+while ((Get-Process -Name "chrome" -ErrorAction SilentlyContinue) -and $timeout -gt 0) {
+    Start-Sleep -Milliseconds 500; $timeout--
+}
+$lock = "$env:LOCALAPPDATA\Google\Chrome\User Data\SingletonLock"
+if (Test-Path $lock) { Remove-Item $lock -Force }
+Start-Sleep -Milliseconds 500
+
+# Launch Chrome with remote debugging
+Write-Host "Launching Chrome with remote debugging..." -ForegroundColor Green
+Start-Process -FilePath $chrome -ArgumentList "--remote-debugging-port=9222"
+Start-Sleep -Seconds 2
+
+# Wait for Chrome to be ready
+$ready = $false
+for ($i = 0; $i -lt 20; $i++) {
+    try {
+        Invoke-RestMethod "http://localhost:9222/json/version" -ErrorAction Stop | Out-Null
+        $ready = $true; break
+    } catch { Start-Sleep -Milliseconds 500 }
+}
+if (-not $ready) { Write-Host "Chrome did not start." -ForegroundColor Red; exit 1 }
+
+# Open chrome://extensions in a new tab
+Invoke-RestMethod "http://localhost:9222/json/new?chrome://extensions" | Out-Null
+Start-Sleep -Seconds 2
+
+# Get the extensions page target
+$targets = Invoke-RestMethod "http://localhost:9222/json"
+$extTarget = $targets | Where-Object { $_.url -like "*extensions*" -and $_.webSocketDebuggerUrl } | Select-Object -First 1
+
+if (-not $extTarget) { Write-Host "Could not find extensions page." -ForegroundColor Red; exit 1 }
+
+# CDP helper
+function Invoke-CDP($ws, [int]$id, [string]$method, [hashtable]$params) {
+    $msg  = @{ id = $id; method = $method; params = $params } | ConvertTo-Json -Depth 10 -Compress
+    $bytes = [Text.Encoding]::UTF8.GetBytes($msg)
+    $ws.SendAsync([ArraySegment[byte]]::new($bytes), [Net.WebSockets.WebSocketMessageType]::Text, $true, [Threading.CancellationToken]::None).Wait()
+    $buf = [byte[]]::new(65536)
+    $r   = $ws.ReceiveAsync([ArraySegment[byte]]::new($buf), [Threading.CancellationToken]::None).GetAwaiter().GetResult()
+    return [Text.Encoding]::UTF8.GetString($buf, 0, $r.Count) | ConvertFrom-Json
+}
+
+# Connect via WebSocket
+$ws = [Net.WebSockets.ClientWebSocket]::new()
+$ws.ConnectAsync([Uri]$extTarget.webSocketDebuggerUrl, [Threading.CancellationToken]::None).Wait()
+
+# Enable developer mode
+Invoke-CDP $ws 1 "Runtime.evaluate" @{
+    expression   = "chrome.developerPrivate.updateProfileConfiguration({inDeveloperMode: true})"
+    awaitPromise = $true
+} | Out-Null
+
+Write-Host "Developer mode enabled." -ForegroundColor Gray
+
+# Load each extension via developerPrivate.loadUnpacked
+$id = 2
+foreach ($extPath in $extPaths) {
+    $escaped = $extPath -replace '\\', '\\\\'
+    $js = "new Promise((res, rej) => chrome.developerPrivate.loadUnpacked({path: '$escaped'}, (r) => chrome.runtime.lastError ? rej(chrome.runtime.lastError.message) : res(r)))"
+    $result = Invoke-CDP $ws $id "Runtime.evaluate" @{ expression = $js; awaitPromise = $true }
+    $id++
+
+    $name = (Split-Path $extPath -Leaf)
+    if ($result.result.result.value) {
+        Write-Host "  Loaded: $name (id: $($result.result.result.value))" -ForegroundColor Green
+    } elseif ($result.result.exceptionDetails) {
+        Write-Host "  Failed: $name - $($result.result.exceptionDetails.exception.description)" -ForegroundColor Red
+    } else {
+        Write-Host "  Result: $name - $($result | ConvertTo-Json -Depth 5)" -ForegroundColor DarkGray
+    }
+}
+
+$ws.CloseAsync([Net.WebSockets.WebSocketCloseStatus]::NormalClosure, "done", [Threading.CancellationToken]::None).Wait()
+Write-Host ""
+Write-Host "Done! Check chrome://extensions." -ForegroundColor Green
