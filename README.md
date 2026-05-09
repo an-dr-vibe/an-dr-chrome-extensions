@@ -4,22 +4,40 @@ Personal Chrome extensions for productivity and development.
 
 ## Quick Start
 
-**Option 1: Desktop shortcut (easiest)**
+### Option 1: Permanent Integration via Symlinks (Recommended)
+
+This integrates extensions into your regular Chrome profile permanently:
+
+```powershell
+.\setup-symlinks.bat
+```
+
+Or from PowerShell (requires Admin):
+```powershell
+.\setup-symlinks.ps1
+```
+
+Then:
+1. Close Chrome completely
+2. Open Chrome normally
+3. Go to `chrome://extensions` and enable Developer Mode if prompted
+4. Extensions will appear automatically!
+
+### Option 2: Launch with Extensions (no permanent changes)
+
+For a temporary session without modifying Chrome:
+
+**Desktop shortcut:**
 ```powershell
 .\create-shortcut.ps1
 ```
-Then just double-click the shortcut on your desktop to launch Chrome with extensions!
+Then double-click the shortcut on your desktop.
 
-**Option 2: Quick launcher**
+**Quick launcher:**
 ```powershell
 .\run.ps1
 ```
-Or just double-click `run.bat`
-
-**Option 3: Full install**
-```powershell
-.\install.ps1
-```
+Or double-click `run.bat`
 
 ## Install on a new machine
 
@@ -29,20 +47,26 @@ Paste this into PowerShell:
 irm https://raw.githubusercontent.com/YOUR_USER/an-dr-chrome-extensions/main/bootstrap.ps1 | iex
 ```
 
-Then run:
+Then for permanent integration:
+
 ```powershell
 cd ~/.chrome-an-dr
-.\create-shortcut.ps1
+.\setup-symlinks.bat
 ```
 
 ## How it works
 
-The launcher scripts:
-1. Close any running Chrome instance
-2. Launch Chrome with `--load-extension` flags pointing to each extension folder
-3. Extensions load immediately without requiring "Load unpacked"
+### Symlink approach (recommended):
+- Creates symlinks from your extension folders into Chrome's Extensions directory
+- Extensions integrate into your regular Chrome profile
+- Survives Chrome updates and restarts
+- Requires one-time Admin privilege for setup
 
-**Note:** Extensions only persist while using the launcher. They won't show in a normal Chrome session. This is intentional to keep them separate from your regular Chrome profile.
+### Launcher approach:
+- Closes any running Chrome instance
+- Launches Chrome with `--load-extension` flags
+- Extensions load for that session only
+- Useful for testing or keeping extensions separate
 
 ## Extensions
 
