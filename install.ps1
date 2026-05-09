@@ -74,11 +74,13 @@ if (Test-Path $lock2) { Remove-Item $lock2 -Force }
 Start-Sleep -Milliseconds 300
 
 # Launch Chrome with all extensions loaded from repo paths
+# Use a temp .bat file to avoid PowerShell mangling @ in the path
 $extList = $extPaths -join ","
-$loadArg = "--load-extension=$extList"
-Write-Host "Command: `"$chrome`" $loadArg" -ForegroundColor Gray
+$bat = [IO.Path]::GetTempFileName() -replace '\.tmp$', '.bat'
+"@echo off`r`n`"$chrome`" --load-extension=`"$extList`"" | Set-Content $bat -Encoding ASCII
+Write-Host "Command: `"$chrome`" --load-extension=`"$extList`"" -ForegroundColor Gray
 Write-Host "Launching Chrome..." -ForegroundColor Green
-& $chrome $loadArg
+Start-Process -FilePath $bat
 
 Write-Host "Done! Extensions loaded from repo." -ForegroundColor Green
 Write-Host "Note: enable Developer mode in chrome://extensions if prompted." -ForegroundColor Gray
