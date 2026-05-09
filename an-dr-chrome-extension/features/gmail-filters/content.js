@@ -206,28 +206,33 @@
     document.querySelectorAll('a[href]').forEach(a => {
       if (!(a.getAttribute('href') || '').includes('#label/')) return;
 
-      // 1. aria-label is the most reliable — Gmail puts the full name there
-      //    but appends ", N conversations" — strip that suffix
-      let name = (a.getAttribute('aria-label') || '')
-        .replace(/,\s*\d[\d,]*\s*(unread\s*)?(conversations?|messages?|threads?)?$/i, '')
+      const href = a.getAttribute('href') || '';
+      const hrefM = href.match(/#label\/(.+)/);
+      if (!hrefM) return;
+
+      const hrefPath   = decodeURIComponent(hrefM[1]).replace(/\+/g, ' ').trim();
+      const hrefLeaf   = hrefPath.split('/').pop();
+      const hrefParent = hrefPath.slice(0, hrefPath.length - hrefLeaf.length);
+
+      // aria-label: "Job 💼, 9 conversations, expanded has menu" → "Job 💼"
+      let display = (a.getAttribute('aria-label') || '')
+        .replace(/,\s*\d.*$/, '')
         .trim();
 
-      // 2. Walk child elements and take the first text-only node that isn't a number
-      if (!name) {
+      if (!display) {
         for (const el of a.querySelectorAll('*')) {
-          if (el.children.length) continue;           // skip parents
+          if (el.children.length) continue;
           const t = el.textContent.trim();
-          if (t && !/^\d+$/.test(t)) { name = t; break; }
+          if (t && !/^\d+$/.test(t)) { display = t; break; }
         }
       }
 
-      // 3. Href as last resort (won't have emoji but better than nothing)
-      if (!name) {
-        const m = (a.getAttribute('href') || '').match(/#label\/(.+)/);
-        if (m) name = decodeURIComponent(m[1]).replace(/\+/g, ' ').trim();
-      }
+      // If display is the leaf + emoji ("Docs 📄"), prepend parent path ("Stored/")
+      const fullName = (display && display.toLowerCase().startsWith(hrefLeaf.toLowerCase()))
+        ? hrefParent + display
+        : (display || hrefPath);
 
-      if (name && !seen.has(name)) { seen.add(name); labels.push(name); }
+      if (fullName && !seen.has(fullName)) { seen.add(fullName); labels.push(fullName); }
     });
 
     return labels;
@@ -240,11 +245,7 @@
     // Exact match first
     const exact = allLabels.find(l => l.toLowerCase() === lower);
     if (exact) return exact;
-    // Sidebar name starts with the bare name then has a space or emoji
-    return allLabels.find(l => {
-      const ll = l.toLowerCase();
-      return ll.startsWith(lower + ' ') || ll.startsWith(lower + ' ');
-    }) || bare;
+    return allLabels.find(l => l.toLowerCase().startsWith(lower + ' ')) || bare;
   }
 
   function labelInputHTML(value) {
